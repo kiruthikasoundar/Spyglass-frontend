@@ -25,6 +25,7 @@ const Home = () => {
                 Login
                 </Button>  
             </div>
+        <h3 align="center">This application is in {import.meta.env.VITE_MODE} Mode</h3>
     </div>
   );
 };
