@@ -20,7 +20,7 @@ const Home = () => {
                       color='inherit'
                       size="large"
                       variant='outlined'
-                      startIcon={<GoogleIcon />}  onClick={() => {window.location.replace('${import.meta.env.VITE_API_URI}/signin')}}     
+                      startIcon={<GoogleIcon />}  onClick={() => {window.location.replace(`${import.meta.env.VITE_API_URI}/signin`)}}     
                 >
                 Login
                 </Button>  
