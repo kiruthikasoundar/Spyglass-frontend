@@ -4,7 +4,8 @@ export const userApi = createApi({
   reducerPath: 'userApi',
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_API_URI, 
-    credentials: 'include'
+    credentials: 'include',
+    mode: 'no-cors'
   }),
   endpoints: (builder) => { return {
     signin: builder.query({
