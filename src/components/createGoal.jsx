@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, TextField, Grid, Typography, Snackbar, Paper } from '@mui/material';
-import { useCreateGoalMutation } from '../api/goalApi';
+import { useCreateGoalMutation, useUploadImageMutation } from '../api/goalApi';
 import Navbar from './Navbar';
-import PicturePicker from './PicturePicker';
 import InputAdornment from '@mui/material/InputAdornment';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+
+
 
 const CreateGoal = () => {
   const [goalData, setGoalData] = useState({
@@ -14,8 +15,11 @@ const CreateGoal = () => {
     targetDate: '',
     targetAmount: '',
     savedAmount: '',
-    pictureUrl: ''
+    pictureUrl: '',
   });
+
+  const [imageData, setImageData] = useState();
+  const [uploadImage] = useUploadImageMutation();
   const [createGoal, { isLoading }] = useCreateGoalMutation();
   const [formErrors, setFormErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
@@ -25,90 +29,93 @@ const CreateGoal = () => {
     const { name, value } = e.target;
     setGoalData((prevState) => ({
       ...prevState,
-      [name]: value
+      [name]: value,
     }));
     validateField(name, value);
   };
 
-  const handlePictureSelect = (url) => {
-    setGoalData((prevData) => ({
-      ...prevData,
-      pictureUrl: url,
-    }));
+  const handleInputBlur = (name) => {
+    validateField(name, goalData[name]);
   };
+
+  const handleSubmit = (e) => {
+    console.log(goalData);
+    e.preventDefault();
+    const errors = validateForm(goalData);
+  
+    if (Object.keys(errors).length === 0) {
+      createGoal(goalData)
+        .unwrap()
+        .then((createdGoal) => {
+          setGoalData({
+            name: '',
+            description: '',
+            targetDate: '',
+            targetAmount: '',
+            savedAmount: '',
+            pictureUrl: '',
+          });
+          setSuccessMessage('Goal created successfully!');
+          setIsSnackbarOpen(true);
+
+          const { id } = createdGoal;
+          console.log(id);
+          uploadImage({ id, image: imageData })
+          .catch((error) => {
+            console.error('Error uploading image:', error);
+            
+          });
+      })
+      .catch((error) => {
+        console.error('Error creating goal:', error);
+      });
+  } else {
+    setFormErrors(errors);
+  }
+};
+  
+ 
 
   const validateField = (name, value) => {
     let errors = { ...formErrors };
-  
+
     switch (name) {
       case 'name':
         if (!value.trim()) {
           errors.name = 'Goal name is required';
         } else {
-          delete errors.name; // Clear the error message if the input is valid
+          delete errors.name;
         }
         break;
-  
-      case 'targetAmount':
-        if (isNaN(value) || Number(value) <= 0) {
-          errors.targetAmount = 'Target amount must be a positive number';
-        } else {
-          delete errors.targetAmount; // Clear the error message if the input is valid
-        }
-        break;
-
       case 'targetDate':
         const currentDate = getCurrentDate();
         if (value < currentDate) {
           errors.targetDate = 'Target date should be in the future';
         } else {
-          delete errors.targetDate; // Clear the error message if the input is valid
+          delete errors.targetDate;
         }
         break;
-  
+      case 'targetAmount':
+        if (isNaN(value) || Number(value) <= 0) {
+          errors.targetAmount = 'Target amount must be a positive number';
+        } else {
+          delete errors.targetAmount;
+        }
+        break;
+      case 'savedAmount':
+        if (isNaN(value) || Number(value) < 0) {
+          errors.savedAmount = 'Saved amount cannot be negative';
+        } else {
+          delete errors.savedAmount;
+        }
+        break;
+
       default:
         break;
     }
-  
+
     setFormErrors(errors);
   };
-
-  const handleCreateGoal = () => {
-    if (validateForm()) {
-        createGoal(goalData)
-        .unwrap()
-        .then((createdGoal) => {
-            // Handle success if needed
-            console.log('Goal created:', createdGoal);
-            setGoalData({
-              name: '',
-              description: '',
-              targetDate: '',
-              targetAmount: '',
-              savedAmount: '',
-              pictureUrl: ''
-            });
-            setSuccessMessage('Goal created successfully!');
-            setIsSnackbarOpen(true);
-        })
-        .catch((error) => {
-            // Handle error if needed
-            console.error('Error creating goal:', error);
-        });
-    }
-  };
-
-  const handleCancel = () => {
-    setGoalData({
-      name: '',
-      description: '',
-      targetDate: '',
-      targetAmount: '',
-      savedAmount: '',
-      pictureUrl: ''
-  });
-    setFormErrors({});
-  }
 
   const getCurrentDate = () => {
     const currentDate = new Date();
@@ -117,7 +124,6 @@ const CreateGoal = () => {
     const day = String(currentDate.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
-
   const validateForm = () => {
     let isValid = true;
 
@@ -144,7 +150,7 @@ const CreateGoal = () => {
       }));
       isValid = false;
     }
-  
+
     return isValid;
   };
 
@@ -154,117 +160,142 @@ const CreateGoal = () => {
 
   return (
     <>
-    <Navbar/>
-    <Grid style={{ paddingLeft: 300, width:500, height:1000, marginTop:90 }} align="center">
-      <Grid item>
-        <Paper style={{ padding: '10px', width: '500px' }}>
-        <TextField
-            name="name"
-            label="Goal Name"
-            value={goalData.name}
-            onChange={handleInputChange}
-            onBlur={() => validateField('name', goalData.name)}
-            fullWidth
-            margin="normal"
-            variant="filled"
-            error={!!formErrors.name}
-            helperText={formErrors.name}
-        />
-        <TextField
-            name="description"
-            label="Goal Description"
-            value={goalData.description}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-            variant="filled"
-            multiline
-            rows={2}
-        />
-        <TextField
-            name="targetDate"
-            label="Target Date"
-            type="date"
-            value={goalData.targetDate}
-            onChange={handleInputChange}
-            onBlur={() => validateField('targetDate', goalData.targetDate)}
-            inputProps={{ min: getCurrentDate() }}
-            fullWidth
-            margin="normal"
-            variant="filled"
-            error={!!formErrors.targetDate}
-            helperText={formErrors.targetDate}
-            InputLabelProps={{ shrink: true }}
-        />
-        <TextField
-            name="targetAmount"
-            label="Target Amount"
-            type="number"
-            value={goalData.targetAmount}
-            onChange={handleInputChange}
-            onBlur={() => validateField('targetAmount', goalData.targetAmount)}
-            fullWidth
-            margin="normal"
-            variant="filled"
-            error={!!formErrors.targetAmount}
-            helperText={formErrors.targetAmount}
-            InputProps={{
-              startAdornment: <InputAdornment position="start">$</InputAdornment>,
-            }}
-        />
-        <TextField
-            name="savedAmount"
-            label="Saved Amount"
-            type="number"
-            value={goalData.savedAmount}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-            variant="filled"
-            InputProps={{
-              startAdornment: <InputAdornment position="start">$</InputAdornment>,
-            }}
-        />
-        <TextField
-            name="pictureUrl"
-            label="Picture URL"
-            value={goalData.pictureUrl}
-            onChange={handleInputChange}
-            fullWidth
-            margin="normal"
-            variant="filled"
-        />
-        {/* <PicturePicker onPictureSelect={handlePictureSelect} /> */}
-
-        <Grid container justifyContent="center" alignItems="center" spacing={1}>
-        <Grid item>
-          <SaveIcon
-            fontSize="large"
-            color="primary"
-            onClick={handleCreateGoal}
-          />
+      <Navbar />
+      <Grid container justifyContent="center" sx={{ marginTop: '2rem' }}>
+        <Grid item xs={12} sm={8} md={6} lg={4}>
+          <Paper elevation={3} sx={{ padding: '2rem' }}>
+            <Typography variant="h4" align="center" sx={{ marginBottom: '1rem' }}>
+              Create Goal
+            </Typography>
+            <form onSubmit={handleSubmit}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    name="name"
+                    label="Name"
+                    variant="outlined"
+                    fullWidth
+                    value={goalData.name}
+                    onChange={handleInputChange}
+                    onBlur={() => handleInputBlur('name')}
+                     error={formErrors.name !== undefined}
+                     helperText={formErrors.name}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    name="description"
+                    label="Description"
+                    variant="outlined"
+                    fullWidth
+                    value={goalData.description}
+                    onChange={handleInputChange}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    name="targetDate"
+                    label="Target Date"
+                    type="date"
+                    variant="outlined"
+                    fullWidth
+                    value={goalData.targetDate}
+                    onChange={handleInputChange}
+                    inputProps={{ min: getCurrentDate() }}
+                    onBlur={() => handleInputBlur('targetDate')}
+                    error={formErrors.targetDate !== undefined}
+                    helperText={formErrors.targetDate}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    name="targetAmount"
+                    label="Target Amount"
+                    type="number"
+                    variant="outlined"
+                    fullWidth
+                    value={goalData.targetAmount}
+                    onChange={handleInputChange}
+                    onBlur={() => handleInputBlur('targetAmount')}
+                    error={formErrors.targetAmount !== undefined}
+                    helperText={formErrors.targetAmount}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    name="savedAmount"
+                    label="Saved Amount"
+                    type="number"
+                    variant="outlined"
+                    fullWidth
+                    value={goalData.savedAmount}
+                    onChange={handleInputChange}
+                    onBlur={() => handleInputBlur('savedAmount')}
+                    error={formErrors.savedAmount !== undefined}
+                    helperText={formErrors.savedAmount}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files[0];
+                      console.log('Selected image:', file);
+                      setImageData(file);
+                    }}
+                  />
+                </Grid>
+              </Grid>
+              <Grid container justifyContent="center" sx={{ marginTop: '2rem' }}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="primary"
+                  startIcon={<SaveIcon />}
+                  disabled={isLoading}
+                >
+                  Save
+                </Button>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<CancelIcon />}
+                  sx={{ marginLeft: '1rem' }}
+                  onClick={() => {
+                    setGoalData({
+                      name: '',
+                      description: '',
+                      targetDate: '',
+                      targetAmount: '',
+                      savedAmount: '',
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+              </Grid>
+            </form>
+          </Paper>
         </Grid>
-        
-        <Grid item>
-        <CancelIcon
-          fontSize="large"
-          color="error"
-          onClick={handleCancel}
-        />
-        </Grid>
-        </Grid>
-        </Paper>
       </Grid>
-    </Grid>
-    <Snackbar
-      open={isSnackbarOpen}
-      autoHideDuration={3000}
-      onClose={handleSnackbarClose}
-      message={successMessage}
-    />
+      <Snackbar
+        open={isSnackbarOpen}
+        autoHideDuration={5000}
+        onClose={handleSnackbarClose}
+        message={successMessage}
+      />
     </>
   );
 };
-
 
 export default CreateGoal;

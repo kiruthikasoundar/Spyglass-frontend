@@ -27,7 +27,7 @@ const Navbar = () => {
 
   const {data: userinfo} = useUserInfoQuery();
 
-  const [logout] = useLogoutMutation();
+  const [logout] = useLogoutMutation(); 
 
   function handleLogout() {
     logout()
@@ -89,7 +89,7 @@ const Navbar = () => {
               <ListItemText sx={navbarStyles.text} primary="Dashboard" />
             </ListItemButton>
           </ListItem>
-          <ListItem onClick={() => navigate('/')} disablePadding>
+          <ListItem  disablePadding>
             <ListItemButton onClick={handleLogout}>
               <ListItemIcon sx={navbarStyles.icons}>
                 <LogoutIcon />

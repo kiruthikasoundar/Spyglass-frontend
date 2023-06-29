@@ -16,6 +16,18 @@ export const goalApi = createApi({
                 body: goal
             }}
         }),
+        uploadImage: builder.mutation({
+          query: ( {id, image} ) => {
+              const formData = new FormData();
+              formData.append('image', image);
+      
+              return {
+                url: `/${id}/upload`,
+                method: 'PUT',
+                body: formData,
+              };
+          }
+        }),
         updateGoal: builder.mutation({
             query: (goal) => { return {
                 method: 'PUT',
@@ -36,5 +48,6 @@ export const {
   useGetGoalsByUserIdQuery,
   useCreateGoalMutation,
   useUpdateGoalMutation,
-  useDeleteGoalMutation
+  useDeleteGoalMutation,
+  useUploadImageMutation,
 } = goalApi;
