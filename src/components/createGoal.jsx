@@ -24,6 +24,7 @@ const CreateGoal = () => {
   const [formErrors, setFormErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false);
+  
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
